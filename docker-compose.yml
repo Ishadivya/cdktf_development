@@ -1,0 +1,57 @@
+version: "3.7"
+
+services:
+  api:
+    build:
+      context: ./CnApi
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+     - "xxxx:xxxx"
+    environment:
+      - xxx
+    depends_on:
+      - redis
+    volumes: ['./CnApi:/app']
+
+  worker:
+    build:
+      context: ./CnProvisioningEngine
+      dockerfile: Dockerfile
+    depends_on:
+      - redis
+    volumes: ['./CnProvisioningEngine:/queue']
+
+  secret:
+    build:
+      context: ./CnVault
+      dockerfile: Dockerfile
+    ports:
+     - "8200:8200"
+    volumes:
+      - ./CnVault/config:/vault/config
+      - ./CnVault/policies:/vault/policies
+      - ./CnVault/data:/vault/data
+      - ./CnVault/logs:/vault/logs
+    environment:
+      - VAULT_ADDR=http://..xx
+      - VAULT_API_ADDR=http://..xx
+    command: server -config=/vault/config/vaultconfig.json
+    cap_add:
+      - IPC_LOCK
+    
+  monitor:
+    build:
+      context: ./CnProvisioningEngine
+      dockerfile: Dockerfile
+    ports:
+     - "xxxx:xxxx"
+    entrypoint: celery
+    command: flower -A tasks --port=5555 --broker=redis://redis:xxxx/0
+    depends_on:
+      - redis
+  
+  redis:
+    image: redis
+    ports:
+     - "xxxx:xxxx"
